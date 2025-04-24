@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BeNiceAI</title>
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            margin-top: 50px;
+        }
+
+        h2 {
+            color: #343a40;
+            margin-bottom: 20px;
+        }
+
+        #userInput {
+            border-radius: 25px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-success {
+            border-radius: 25px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-success:hover {
+            background-color: #28a745;
+            opacity: 0.8;
+        }
+
+        #chatHistory {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .chat-bubble {
+            padding: 10px;
+            border-radius: 15px;
+            margin: 5px 0;
+            max-width: 70%;
+        }
+
+        .user-bubble {
+            background-color: #d1e7dd;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .ai-bubble {
+            background-color: #f8d7da;
+            align-self: flex-start;
+        }
+
+        .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>BeNiceAI</h2>
+        <div class="form-group">
+            <input type="text" class="form-control" id="userInput" placeholder="Enter your question"
+                onkeydown="handleKeyPress(event)" />
+        </div>
+        <button class="btn btn-success" onclick="sendMessage()">Ask!</button>
+        <div id="chatHistory" class="chat-container mt-3"></div>
+    </div>
+    <script>
+        async function sendMessage() {
+            const inputField = document.getElementById('userInput');
+            const input = inputField.value.trim();
+            const chatHistory = document.getElementById('chatHistory');
+
+            if (!input) {
+                alert('Please enter a message.');
+                return;
+            }
+
+            // Add user message to chat history
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble user-bubble';
+            userBubble.textContent = input;
+            chatHistory.appendChild(userBubble);
+            inputField.value = ''; // Clear input field
+
+            // Show loading spinner
+            const loadingBubble = document.createElement('div');
+            loadingBubble.className = 'chat-bubble ai-bubble';
+            loadingBubble.innerHTML = '<div class="spinner-border" role="status"><span class="sr-only">Loading...</span></div>';
+            chatHistory.appendChild(loadingBubble);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                const response = await fetch('http://localhost:3000/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: 'deepseek/deepseek-r1:free',
+                        messages: [{ role: 'user', content: input }],
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const markdownText = data.choices?.[0]?.message?.content || 'No response received.';
+
+                // Remove loading bubble
+                chatHistory.removeChild(loadingBubble);
+
+                // Convert markdown to HTML
+                const aiResponseHtml = marked.parse(markdownText);
+
+                // Add AI response to chat history
+                const aiBubble = document.createElement('div');
+                aiBubble.className = 'chat-bubble ai-bubble';
+                aiBubble.innerHTML = aiResponseHtml;
+                chatHistory.appendChild(aiBubble);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            } catch (error) {
+                chatHistory.removeChild(loadingBubble);
+                const errorBubble = document.createElement('div');
+                errorBubble.className = 'chat-bubble ai-bubble';
+                errorBubble.textContent = 'Error: ' + error.message;
+                chatHistory.appendChild(errorBubble);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+        }
+
+        // Allow pressing Enter to send message
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+    </script>
+</body>
+
+</html>

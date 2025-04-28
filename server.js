@@ -34,6 +34,11 @@ app.post('/chat', async (req, res) => {
     }
 });
 
+// 🏠 NEW: GET / route (homepage)
+app.get('/', (req, res) => {
+  res.send('BeNiceAI Server is running! 🚀');
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running at port ${PORT}`);
